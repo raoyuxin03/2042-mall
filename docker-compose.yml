@@ -1,0 +1,35 @@
+services:
+  mall-mysql:
+    image: mysql:8.0
+    container_name: mall-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: 2042_mall
+    ports:
+      - "3307:3306"
+    volumes:
+      - mall-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  mall-app:
+    build: .
+    container_name: mall-app
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      MYSQL_HOST: mall-mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: "123456"
+      MYSQL_DATABASE: 2042_mall
+    depends_on:
+      mall-mysql:
+        condition: service_healthy
+
+volumes:
+  mall-mysql-data:

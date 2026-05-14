@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2042百货 - 后台管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f0f4f8; color:#1a202c; min-height:100vh; }
+
+    /* 顶栏 */
+    .topbar { background:linear-gradient(135deg,#1a365d,#2b6cb0); color:#fff; padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+    .topbar h1 { font-size:18px; font-weight:700; }
+    .topbar a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:13px; padding:5px 14px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); transition:.2s; }
+    .topbar a:hover { background:rgba(255,255,255,0.1); color:#fff; }
+
+    .container { max-width:1400px; margin:0 auto; padding:20px; }
+
+    /* 统计卡片 */
+    .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+    .stat-card { background:#fff; border-radius:10px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+    .stat-label { font-size:12px; color:#718096; margin-bottom:2px; }
+    .stat-val { font-size:26px; font-weight:700; color:#1a202c; }
+    .stat-sub { font-size:12px; color:#a0aec0; margin-top:2px; }
+
+    /* 双列布局 */
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; }
+
+    /* 卡片通用 */
+    .card { background:#fff; border-radius:10px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+    .card-title { font-size:15px; font-weight:600; color:#2d3748; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
+    .badge { font-size:11px; font-weight:500; color:#fff; background:#2b6cb0; padding:2px 10px; border-radius:10px; }
+
+    /* 表格 */
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:8px 10px; background:#f7fafc; color:#4a5568; font-weight:600; font-size:12px; border-bottom:2px solid #e2e8f0; }
+    td { padding:8px 10px; border-bottom:1px solid #edf2f7; color:#4a5568; }
+    tr:hover td { background:#f7fafc; }
+    .tag { padding:2px 8px; border-radius:10px; font-size:11px; }
+    .tag-green { background:#c6f6d5; color:#276749; }
+    .tag-red { background:#fed7d7; color:#9b2c2c; }
+    .tag-yellow { background:#fefcbf; color:#975a16; }
+
+    /* 柱状图 */
+    .chart-bars { height:200px; display:flex; align-items:flex-end; gap:3px; padding-top:8px; }
+    .bar-item { flex:1; max-width:22px; border-radius:3px 3px 0 0; transition:.3s; position:relative; }
+    .bar-item:hover { opacity:.8; transform:scaleY(1.03); transform-origin:bottom; }
+    .bar-label { text-align:center; font-size:8px; color:#a0aec0; margin-top:3px; }
+
+    /* 状态分布 */
+    .status-list { display:flex; flex-direction:column; gap:8px; }
+    .s-item { display:flex; align-items:center; gap:8px; }
+    .s-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .s-name { flex:1; font-size:13px; color:#4a5568; }
+    .s-bar { flex:2; height:6px; background:#edf2f7; border-radius:3px; overflow:hidden; }
+    .s-fill { height:100%; border-radius:3px; transition:width .6s; }
+    .s-count { font-size:13px; font-weight:600; color:#2d3748; min-width:36px; text-align:right; }
+
+    /* Dify固定 */
+    #dify-chatbot-bubble-button { position:fixed!important; bottom:24px!important; right:24px!important; z-index:2147483647!important; background:linear-gradient(135deg,#1a365d,#2b6cb0)!important; box-shadow:0 4px 24px rgba(43,108,176,0.5)!important; border:none!important; width:64px!important; height:64px!important; cursor:pointer!important; }
+    #dify-chatbot-bubble-button:hover { transform:scale(1.1)!important; box-shadow:0 6px 32px rgba(43,108,176,0.7)!important; }
+    #dify-chatbot-bubble-window { position:fixed!important; z-index:2147483646!important; width:32rem!important; height:44rem!important; }
+
+    @media (max-width:1024px) { .two-col { grid-template-columns:1fr; } }
+    @media (max-width:640px) { .stat-row { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+
+  <!-- ===== 顶栏 ===== -->
+  <div class="topbar">
+    <h1>📊 2042百货 · 后台管理</h1>
+    <a href="/">← 返回商城</a>
+  </div>
+
+  <div class="container">
+
+    <!-- ===== 统计卡片 ===== -->
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">📦 总订单数</div>
+        <div class="stat-val" id="statOrders">-</div>
+        <div class="stat-sub">今日 <strong id="statOrdersToday">-</strong></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">💰 总营业额</div>
+        <div class="stat-val" id="statRevenue">-</div>
+        <div class="stat-sub">今日 <strong id="statRevenueToday">-</strong> 信用点</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">👤 注册用户</div>
+        <div class="stat-val" id="statUsers">-</div>
+        <div class="stat-sub">🏆 热销 <strong id="topProductInfo">-</strong></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🔄 退款单数</div>
+        <div class="stat-val" id="statRefunds">-</div>
+        <div class="stat-sub">退款率 <strong id="statRefundRate">-</strong></div>
+      </div>
+    </div>
+
+    <!-- ===== 双列：今日明细 + 状态分布 ===== -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">
+          <span>📋 今日销售明细</span>
+          <span class="badge">2042-05-12</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>用户</th>
+                <th>商品</th>
+                <th>数量</th>
+                <th>金额</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="todayOrdersBody">
+              <tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 订单状态分布</div>
+        <div class="status-list" id="statusList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Dify ===== -->
+  <script>
+    window.difyChatbotConfig = { token:'kJAqSQG4EGo1cgFs', baseUrl:'http://localhost', inputs:{}, systemVariables:{}, userVariables:{} };
+  </script>
+  <script src="http://localhost/embed.min.js" id="kJAqSQG4EGo1cgFs" defer></script>
+
+  <script>
+    var API = '';
+    function fmt(n) { return n||n===0?Number(n).toLocaleString():'-'; }
+
+    function loadOverview() {
+      fetch(API+'/api/admin/overview').then(function(r){return r.json()}).then(function(d){
+        if(d.code!==0)return;
+        var da=d.data;
+        document.getElementById('statOrders').textContent=fmt(da.total_orders);
+        document.getElementById('statRevenue').textContent=fmt(da.total_revenue);
+        document.getElementById('statUsers').textContent=fmt(da.user_count);
+        document.getElementById('statRefunds').textContent=fmt(da.total_refunds);
+        document.getElementById('statOrdersToday').textContent=fmt(da.orders_today);
+        document.getElementById('statRevenueToday').textContent=fmt(da.revenue_today);
+        document.getElementById('topProductInfo').textContent=da.top_product;
+        var rate=da.total_orders>0?((da.total_refunds/da.total_orders)*100).toFixed(1)+'%':'-';
+        document.getElementById('statRefundRate').textContent=rate;
+      });
+    }
+
+    function loadTodayOrders() {
+      fetch(API+'/api/admin/today-orders').then(function(r){return r.json()}).then(function(d){
+        if(d.code!==0)return;
+        var orders=d.data;
+        var tbody=document.getElementById('todayOrdersBody');
+        if(!orders.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px;">今日暂无订单</td></tr>';return;}
+        var html='';
+        for(var i=0;i<orders.length;i++){
+          var o=orders[i];
+          var cls=o.status==='已完成'?'tag-green':o.status==='已退款'?'tag-red':'tag-yellow';
+          html+='<tr><td style="font-family:monospace;font-size:12px;">'+o.order_id+'</td><td>'+o.user_name+'</td><td>'+o.product_name+'</td><td>'+o.quantity+'</td><td style="font-weight:600;">'+fmt(o.amount)+'</td><td><span class="tag '+cls+'">'+o.status+'</span></td></tr>';
+        }
+        tbody.innerHTML=html;
+      }).catch(function(){document.getElementById('todayOrdersBody').innerHTML='<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px;">加载失败</td></tr>';});
+    }
+
+    function loadTrend() {
+      fetch(API+'/api/admin/revenue-trend?days=30').then(function(r){return r.json()}).then(function(d){
+        if(d.code!==0||!d.data.length)return;
+        var data=d.data,vals=data.map(function(x){return x.revenue;}),maxV=Math.max.apply(null,vals);
+        var c=document.getElementById('trendChart'),html='',colors=['#2b6cb0','#3182ce','#4299e1','#63b3ed'];
+        for(var i=0;i<data.length;i++){
+          var h=maxV>0?(data[i].revenue/maxV*180):0,lb=i%5===0?data[i].date.slice(5):'';
+          html+='<div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:22px;"><div class="bar-item" style="height:'+Math.max(h,4)+'px;background:'+colors[i%4]+';" title="'+data[i].date+' '+fmt(data[i].revenue)+'"></div><div class="bar-label">'+lb+'</div></div>';
+        }
+        c.innerHTML=html;
+      });
+    }
+
+    function loadStatus() {
+      fetch(API+'/api/admin/order-status').then(function(r){return r.json()}).then(function(d){
+        if(d.code!==0)return;
+        var data=d.data,total=data.reduce(function(s,x){return s+x.count;},0),map={'已完成':'#38a169','已退款':'#e53e3e','处理中':'#d69e2e'};
+        var c=document.getElementById('statusList'),html='';
+        for(var i=0;i<data.length;i++){
+          var pct=total>0?((data[i].count/total)*100).toFixed(0):0;
+          html+='<div class="s-item"><div class="s-dot" style="background:'+(map[data[i].status]||'#718096')+'"></div><span class="s-name">'+data[i].status+'</span><div class="s-bar"><div class="s-fill" style="width:'+pct+'%;background:'+(map[data[i].status]||'#718096')+'"></div></div><span class="s-count">'+fmt(data[i].count)+'</span></div>';
+        }
+        c.innerHTML=html;
+      });
+    }
+
+    loadOverview();loadTodayOrders();loadStatus();
+  </script>
+</body>
+</html>
