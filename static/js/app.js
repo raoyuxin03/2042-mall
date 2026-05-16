@@ -282,9 +282,26 @@
     }
     function confirmBuy() {
       if (!buyProductId) return;
-      addToCart(buyProductId, buyModalQty);
       closeBuyModal();
-      checkout();
+      // 直接下单，不加购物车
+      var api = window.API_BASE || '';
+      var sess = getSession();
+      var token = sess.loggedIn ? sess.token : '';
+      if (!token) { showToast('🔒 登录信息失效，请重新登录'); return; }
+      var p = products.find(function(item){return item.id===buyProductId;});
+      if (!p) return;
+      var items = [{ product_id: p.id, qty: buyModalQty, price: p.price }];
+      fetch(api + '/api/orders?token=' + encodeURIComponent(token), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: items })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.code !== 0) { showToast('❌ 下单失败：' + (d.detail || '未知错误')); return; }
+        showToast('✅ 下单成功！订单号：' + d.data.order_id);
+      })
+      .catch(function(){ showToast('❌ 网络异常，下单失败'); });
     }
     function closeBuyModal() {
       document.getElementById('buyModal').classList.remove('show');
@@ -553,7 +570,7 @@
     function getSession() { return lsGet('login2042_session', {}); }
     function saveSession(s) { lsSet('login2042_session', s); }
     function clearSession() {
-      localStorage.removeItem('login2042_session');
+      lsSet('login2042_session', {});
     }
 
     // ---------- 导航栏 ----------
@@ -571,14 +588,25 @@
       }
     }
 
+      function hideDifyBtn() {
+        var btn = document.querySelector('#dify-chatbot-bubble-button');
+        if (btn) btn.style.display = 'none';
+      }
+      function showDifyBtn() {
+        var btn = document.querySelector('#dify-chatbot-bubble-button');
+        if (btn) btn.style.display = '';
+      }
+
       function showLoginPage() {
       document.getElementById('registerOverlay').style.display = 'none';
       document.getElementById('loginOverlay').classList.remove('hidden');
+      hideDifyBtn();
       showingLogin = true;
     }
     function showRegisterPage() {
       document.getElementById('loginOverlay').classList.add('hidden');
       document.getElementById('registerOverlay').style.display = '';
+      hideDifyBtn();
       showingLogin = true;
     }
     function switchUser() {
@@ -589,6 +617,106 @@
       showToast('👋 已切换用户');
     }
 
+    function logout() {
+      clearSession();
+      currentUser = null;
+      updateNavUser();
+      // 隐藏登录和注册弹窗
+      document.getElementById('loginOverlay').classList.add('hidden');
+      document.getElementById('registerOverlay').style.display = 'none';
+      // 显示品牌封面页
+      var splash = document.getElementById('splashOverlay');
+      if (splash) splash.classList.remove('hidden');
+      showToast('👋 已退出登录');
+    }
+
+    // ---------- 品牌封面页粒子动画 ----------
+    function initSplashParticles() {
+      var canvas = document.getElementById('splashCanvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var particles = [];
+      var mouse = {x: 0, y: 0};
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+      window.addEventListener('mousemove', function(e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+      for (var i = 0; i < 60; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          r: Math.random() * 2 + 0.5,
+          a: Math.random() * 0.4 + 0.1,
+        });
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (var i = 0; i < particles.length; i++) {
+          var p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          if (p.x < 0) p.x = canvas.width;
+          if (p.x > canvas.width) p.x = 0;
+          if (p.y < 0) p.y = canvas.height;
+          if (p.y > canvas.height) p.y = 0;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0, 255, 255, ' + p.a + ')';
+          ctx.fill();
+          // 连线
+          for (var j = i + 1; j < particles.length; j++) {
+            var dx = p.x - particles[j].x;
+            var dy = p.y - particles[j].y;
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+              ctx.beginPath();
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = 'rgba(0, 255, 255, ' + (0.08 * (1 - dist / 120)) + ')';
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+        requestAnimationFrame(animate);
+      }
+      animate();
+    }
+
+    // ---------- 品牌标题打字机效果 ----------
+    function initSplashTyping() {
+      var el = document.getElementById('splashTitle');
+      if (!el) return;
+      var text = '虚拟科技百货';
+      var i = 0;
+      el.textContent = '';
+      function type() {
+        if (i < text.length) {
+          el.textContent += text.charAt(i);
+          i++;
+          setTimeout(type, 120);
+        } else {
+          // 添加光标闪烁
+          el.style.setProperty('border-right', '2px solid rgba(0,255,255,0.6)');
+          el.style.setProperty('animation', 'cursor-blink 0.8s step-end infinite');
+        }
+      }
+      type();
+    }
+
+    function hideSplash() {
+      var el = document.getElementById('splashOverlay');
+      if (el) el.classList.add('hidden');
+    }
+
     function loadLoginInfo() {
       try {
         var sess = getSession();
@@ -596,6 +724,8 @@
           document.getElementById('loginOverlay').classList.add('hidden');
           document.getElementById('registerOverlay').style.display = 'none';
           currentUser = sess.username;
+          hideSplash();
+          showDifyBtn();
             } else if (sess.remember && sess.username) {
           document.getElementById('loginUser').value = sess.username || '';
           document.getElementById('loginPass').value = sess.password || '';
@@ -628,6 +758,7 @@
         document.getElementById('loginOverlay').classList.add('hidden');
         document.getElementById('welcomeTitle').textContent = '🚀 欢迎 ' + user + '！';
         document.getElementById('welcomeOverlay').classList.add('show');
+        showDifyBtn();
       })
       .catch(function(){ showToast('❌ 网络异常，请检查后端是否启动'); });
     }
@@ -657,6 +788,7 @@
         document.getElementById('registerOverlay').style.display = 'none';
         document.getElementById('welcomeTitle').textContent = '🎉 欢迎 ' + user + '，注册成功！';
         document.getElementById('welcomeOverlay').classList.add('show');
+        showDifyBtn();
       })
       .catch(function(){ showToast('❌ 网络异常，请检查后端是否启动'); });
     }
@@ -665,13 +797,16 @@
     function skipLogin() {
       currentUser = null;
       updateNavUser();
+      hideSplash();
       document.getElementById('loginOverlay').classList.add('hidden');
       document.getElementById('welcomeTitle').textContent = '👋 欢迎来到小饶的虚拟科技百货';
       document.getElementById('welcomeOverlay').classList.add('show');
+      showDifyBtn();
     }
 
     function closeWelcome() {
       document.getElementById('welcomeOverlay').classList.remove('show');
+      showDifyBtn();
     }
 
     function requireAuth() {
@@ -695,6 +830,8 @@
     // ==============================
     //  初始化
     // ==============================
+    initSplashParticles();
+    initSplashTyping();
     loadLoginInfo();
     updateCartUI();
     loadProducts();

@@ -10,6 +10,25 @@
 <body>
 
   <!-- ============================
+       品牌封面页
+  ============================ -->
+  <div class="splash-overlay" id="splashOverlay">
+    <canvas id="splashCanvas"></canvas>
+    <div class="splash-content">
+      <div class="splash-icon">✦</div>
+      <h1 class="splash-title" id="splashTitle"></h1>
+      <p class="splash-sub">未来科技 · 触手可及</p>
+      <p class="splash-desc">探索前沿科技商品，体验未来生活方式</p>
+      <div class="splash-btns">
+        <button class="splash-btn splash-btn-primary" onclick="showLoginPage();hideSplash();">登 录</button>
+        <button class="splash-btn splash-btn-secondary" onclick="showRegisterPage();hideSplash();">注 册</button>
+      </div>
+      <button class="splash-skip" onclick="skipLogin();hideSplash();">随便逛逛 →</button>
+      <p class="splash-version">© 2026 小饶的虚拟科技百货 · Demo</p>
+    </div>
+  </div>
+
+  <!-- ============================
        全屏登录页
   ============================ -->
   <div class="login-overlay" id="loginOverlay">
@@ -115,7 +134,7 @@
           <!-- 登录状态 -->
           <div id="userArea" class="hidden">
             <span class="text-sm text-cyan-300 font-semibold" id="userNameDisplay" style="text-shadow:0 0 8px rgba(0,255,255,0.3);"></span>
-            <button onclick="switchUser()" class="text-[10px] text-gray-500 hover:text-cyan-400 transition-colors ml-1" title="切换用户">切换</button>
+            <button onclick="logout()" class="text-[10px] text-gray-500 hover:text-red-400 transition-colors ml-2" title="退出登录">退出</button>
           </div>
           <button id="loginNavBtn" onclick="showLoginPage()" class="text-xs text-cyan-400/60 hover:text-cyan-300 border border-cyan-500/20 hover:border-cyan-400/40 rounded-lg px-3 py-1.5 transition-all hidden">登录</button>
           <a href="/admin.html" class="text-xs text-cyan-400/60 hover:text-cyan-300 border border-cyan-500/20 hover:border-cyan-400/40 rounded-lg px-3 py-1.5 transition-all">后台管理</a>
