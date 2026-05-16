@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2042百货 - 后台管理</title>
+  <title>虚拟科技百货 - 后台管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -70,7 +70,7 @@
 
   <!-- ===== 顶栏 ===== -->
   <div class="topbar">
-    <h1>📊 2042百货 · 后台管理</h1>
+    <h1>📊 虚拟科技百货 · 后台管理</h1>
     <a href="/">← 返回商城</a>
   </div>
 
@@ -105,7 +105,7 @@
       <div class="card">
         <div class="card-title">
           <span>📋 今日销售明细</span>
-          <span class="badge">2042-05-12</span>
+          <span class="badge" id="todayBadge">加载中...</span>
         </div>
         <div style="overflow-x:auto;">
           <table>
@@ -131,7 +131,13 @@
       </div>
     </div>
 
-  </div>
+    <!-- ===== 营收趋势 ===== -->
+    <div class="card" style="margin-bottom:18px;">
+      <div class="card-title">📈 近30天营收趋势</div>
+      <div class="chart-bars" id="trendChart" style="height:120px;"></div>
+    </div>
+
+  </div><!-- container -->
 
   <!-- ===== Dify ===== -->
   <script>
@@ -201,7 +207,11 @@
       });
     }
 
-    loadOverview();loadTodayOrders();loadStatus();
+    // 更新日期标签
+    var now = new Date();
+    document.getElementById('todayBadge').textContent = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+    loadOverview();loadTodayOrders();loadStatus();loadTrend();
   </script>
 </body>
 </html>

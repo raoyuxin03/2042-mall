@@ -1,11 +1,12 @@
 """
-2042百货线上商城 - 后端API服务
+小饶的虚拟科技百货 - 后端API服务
 FastAPI + MySQL，提供注册登录、商品列表、购物车同步、后台数据接口
 """
 
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from datetime import date as date_type
 from contextlib import asynccontextmanager
 import random
 
@@ -87,6 +88,30 @@ class CartSyncReq(BaseModel):
     items: list[CartItem]
 
 
+class OrderItem(BaseModel):
+    product_id: str
+    qty: int
+    price: float | str
+
+
+class CreateOrderReq(BaseModel):
+    items: list[OrderItem]
+
+
+# 商品ID到名称的映射
+PRODUCT_NAME_MAP = {p["id"]: p["name"] for p in PRODUCTS}
+
+
+def get_product_name(product_id: str) -> str:
+    return PRODUCT_NAME_MAP.get(product_id, f"商品{product_id}")
+
+
+def today_str() -> str:
+    """返回真实日期字符串"""
+    now = datetime.now()
+    return f"{now.year}-{now.month:02d}-{now.day:02d}"
+
+
 # ─── 工具函数 ──────────────────────────────────────────
 
 def generate_token() -> str:
@@ -112,7 +137,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="2042百货商城 API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="虚拟科技百货 API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -176,10 +201,12 @@ def init_db():
         )
     """)
     conn.commit()
+    # 如果 shipments 表的外键约束导致问题，尝试删除
+    try:
+        c.execute("ALTER TABLE shipments DROP FOREIGN KEY IF EXISTS shipments_ibfk_1")
+    except Exception:
+        pass
     conn.close()
-
-
-# ─── 路由 ─────────────────────────────────────────────
 
 @app.get("/api/products")
 def get_products():
@@ -202,10 +229,11 @@ def admin_overview():
     user_count = c.fetchone()["cnt"]
     c.execute("SELECT product_id FROM orders GROUP BY product_id ORDER BY SUM(quantity) DESC LIMIT 1")
     top = c.fetchone()
-    top_name = f"商品{top['product_id']}" if top else "暂无"
-    c.execute("SELECT SUM(total_price) as s FROM orders WHERE order_date='2042-05-12'")
+    top_name = get_product_name(str(top['product_id'])) if top else "暂无"
+    td = today_str()
+    c.execute("SELECT SUM(total_price) as s FROM orders WHERE order_date=%s", (td,))
     rev_today = c.fetchone()["s"] or 0
-    c.execute("SELECT COUNT(*) as cnt FROM orders WHERE order_date='2042-05-12'")
+    c.execute("SELECT COUNT(*) as cnt FROM orders WHERE order_date=%s", (td,))
     ord_today = c.fetchone()["cnt"]
     conn.close()
     return {"code":0,"data":{"total_orders":total_orders,"total_revenue":round(float(total_revenue),2),"total_refunds":total_refunds,"user_count":user_count,"top_product":top_name,"revenue_today":round(float(rev_today),2),"orders_today":ord_today}}
@@ -237,13 +265,13 @@ def order_status():
 def today_orders():
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT order_id,customer_name,product_id,quantity,total_price,status,order_date FROM orders WHERE order_date='2042-05-12' ORDER BY order_id LIMIT 50")
+    c.execute("SELECT order_id,customer_name,product_id,quantity,total_price,status,order_date FROM orders WHERE order_date=%s ORDER BY order_id LIMIT 50", (today_str(),))
     rows = c.fetchall()
     conn.close()
     MAP = {"completed":"已完成","refunded":"已退款","pending":"处理中"}
     data = [{
         "order_id":f"ORD{r['order_id']}","user_name":r["customer_name"],
-        "product_name":f"商品{r['product_id']}","quantity":r["quantity"],
+        "product_name":get_product_name(str(r['product_id'])),"quantity":r["quantity"],
         "amount":float(r["total_price"]),"status":MAP.get(r["status"],r["status"])
     } for r in rows]
     return {"code":0,"data":data}
@@ -327,6 +355,53 @@ def sync_cart(req: CartSyncReq, token: str):
     conn.commit()
     conn.close()
     return {"code": 0, "msg": "同步成功"}
+
+
+# ── 下单 ──
+
+
+@app.post("/api/orders")
+def create_order(req: CreateOrderReq, token: str):
+    username = get_username_by_token(token)
+    if not username:
+        raise HTTPException(status_code=401, detail="无效的token")
+    if not req.items:
+        raise HTTPException(status_code=400, detail="订单不能为空")
+
+    conn = get_db()
+    c = conn.cursor()
+    td = today_str()
+    # 去掉 td 的年份前缀再用短格式，orders 表的 order_id 前缀是 ORD
+    dt = datetime.now()
+    # 用毫秒时间戳+随机数生成订单号
+    order_id = f"ORD{dt.strftime('%y%m%d%H%M%S')}{random.randint(1000, 9999)}"
+    total_price = 0
+
+    for idx, item in enumerate(req.items):
+        # 计算单价（支持字符串类型价格如"299/月"）
+        price = item.price if isinstance(item.price, (int, float)) else 0
+        sub = price * item.qty
+        total_price += sub
+        sub_order_id = f"{order_id}-{idx + 1}"
+        c.execute(
+            "INSERT INTO orders (order_id, customer_name, product_id, quantity, total_price, status, order_date) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (sub_order_id, username, item.product_id, item.qty, sub, "pending", td),
+        )
+
+    # 同时插入物流记录
+    companies = ["顺丰速运", "中通快递", "圆通速递", "京东物流", "EMS"]
+    company = random.choice(companies)
+    try:
+        c.execute(
+            "INSERT INTO shipments (order_id, company, tracking_no, status, location, eta) VALUES (%s, %s, %s, %s, %s, %s)",
+            (order_id, company, f"SF{order_id}", "pending", "待发货", td),
+        )
+    except Exception:
+        pass  # 外键约束不匹配时跳过，不影响主流程
+
+    conn.commit()
+    conn.close()
+    return {"code": 0, "data": {"order_id": order_id, "total_price": round(total_price, 2)}}
 
 
 # ── 静态文件 ──

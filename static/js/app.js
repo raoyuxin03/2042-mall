@@ -392,22 +392,49 @@
       if (!requireAuth()) return;
       var ids = Object.keys(cart);
       if (ids.length === 0) { showToast('🛒 购物车是空的'); return; }
-      var summary = document.getElementById('checkoutSummary');
-      var html = '';
-      var total = 0;
+
+      // 调后端 API 下单
+      var api = window.API_BASE || '';
+      var sess = getSession();
+      var token = sess.loggedIn ? sess.token : '';
+      if (!token) { showToast('🔒 登录信息失效，请重新登录'); return; }
+
+      var items = [];
       for (var i = 0; i < ids.length; i++) {
         var item = cart[ids[i]];
-        var price = typeof item.price === 'number' ? item.price : 0;
-        var sub = price * item.qty;
-        total += sub;
-        html += '<div class="flex justify-between text-gray-300"><span>'+item.name+' ×'+item.qty+'</span><span class="text-cyan-300">'+(sub.toLocaleString())+' 信用点</span></div>';
+        items.push({ product_id: item.id, qty: item.qty, price: item.price });
       }
-      html += '<div class="border-t border-cyan-500/10 pt-2 mt-2 flex justify-between text-white font-bold"><span>合计</span><span class="text-cyan-300">'+total.toLocaleString()+' 信用点</span></div>';
-      summary.innerHTML = html;
-      document.getElementById('checkoutOrderId').textContent = 'ORD2042' + String(Date.now()).slice(-6);
-      toggleCart();
-      document.getElementById('checkoutModal').classList.add('show');
-      document.body.style.overflow = 'hidden';
+
+      fetch(api + '/api/orders?token=' + encodeURIComponent(token), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: items })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.code !== 0) { showToast('❌ 下单失败：' + (d.detail || '未知错误')); return; }
+
+        // 显示成功弹窗
+        var orderId = d.data.order_id;
+        var total = d.data.total_price;
+        var summary = document.getElementById('checkoutSummary');
+        var html = '';
+        for (var i = 0; i < ids.length; i++) {
+          var item = cart[ids[i]];
+          var price = typeof item.price === 'number' ? item.price : 0;
+          var sub = price * item.qty;
+          html += '<div class="flex justify-between text-gray-300"><span>'+item.name+' ×'+item.qty+'</span><span class="text-cyan-300">'+(sub.toLocaleString())+' 信用点</span></div>';
+        }
+        html += '<div class="border-t border-cyan-500/10 pt-2 mt-2 flex justify-between text-white font-bold"><span>合计</span><span class="text-cyan-300">'+total.toLocaleString()+' 信用点</span></div>';
+        summary.innerHTML = html;
+        document.getElementById('checkoutOrderId').textContent = orderId;
+        toggleCart();
+        document.getElementById('checkoutModal').classList.add('show');
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(function(){
+        showToast('❌ 网络异常，下单失败');
+      });
     }
     function closeCheckout() {
       document.getElementById('checkoutModal').classList.remove('show');
@@ -503,11 +530,11 @@
     var stockClassMap = {'现货':'stock-spot','预约':'stock-book','限量':'stock-limited','预售':'stock-presale','即将上线':'stock-coming'};
 
     // ==============================
-    //  科幻时钟（基于当前系统时间，显示为2042年）
+    //  科幻时钟（基于当前系统时间，）
     // ==============================
     function updateClock() {
       var now = new Date();
-      var y = 2042;
+      var y = now.getFullYear();
       var mo = String(now.getMonth()+1).padStart(2,'0');
       var d = String(now.getDate()).padStart(2,'0');
       var h = String(now.getHours()).padStart(2,'0');
@@ -600,22 +627,24 @@
       if (!user) { shakeInput('loginUser'); return; }
       if (!pass) { shakeInput('loginPass'); return; }
 
-      var users = getUsers();
-      if (users[user]) {
-        if (pass !== users[user].password) { shakeInput('loginPass'); return; }
-      } else {
-        if (pass !== DEFAULT_PASS) { shakeInput('loginPass'); return; }
-        users[user] = { password: pass, registered: false };
-        saveUsers(users);
-      }
-
-      var remember = document.getElementById('loginRemember').checked;
-      saveSession({ username: user, password: pass, remember: remember, loggedIn: true });
-      currentUser = user;
-      updateNavUser();
-      document.getElementById('loginOverlay').classList.add('hidden');
-      document.getElementById('welcomeTitle').textContent = '🚀 欢迎 ' + user + '！';
-      document.getElementById('welcomeOverlay').classList.add('show');
+      var api = window.API_BASE || '';
+      fetch(api + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.code !== 0) { shakeInput('loginPass'); showToast('❌ ' + (d.detail || '登录失败')); return; }
+        var remember = document.getElementById('loginRemember').checked;
+        saveSession({ username: user, password: pass, token: d.data.token, remember: remember, loggedIn: true });
+        currentUser = user;
+        updateNavUser();
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('welcomeTitle').textContent = '🚀 欢迎 ' + user + '！';
+        document.getElementById('welcomeOverlay').classList.add('show');
+      })
+      .catch(function(){ showToast('❌ 网络异常，请检查后端是否启动'); });
     }
 
     // ---------- 注册 ----------
@@ -628,17 +657,23 @@
       if (pass !== pass2) { shakeInput('regPass2'); showToast('❌ 两次密码不一致'); return; }
       if (pass.length < 3) { shakeInput('regPass'); showToast('❌ 密码至少3位'); return; }
 
-      var users = getUsers();
-      if (users[user]) { shakeInput('regUser'); showToast('❌ 用户名已存在'); return; }
-      users[user] = { password: pass, registered: true };
-      saveUsers(users);
-      saveSession({ username: user, password: pass, remember: true, loggedIn: true });
-
-      currentUser = user;
-      updateNavUser();
-      document.getElementById('registerOverlay').style.display = 'none';
-      document.getElementById('welcomeTitle').textContent = '🎉 欢迎 ' + user + '，注册成功！';
-      document.getElementById('welcomeOverlay').classList.add('show');
+      var api = window.API_BASE || '';
+      fetch(api + '/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.code !== 0) { shakeInput('regUser'); showToast('❌ ' + (d.detail || '注册失败')); return; }
+        saveSession({ username: user, password: pass, token: d.data.token, remember: true, loggedIn: true });
+        currentUser = user;
+        updateNavUser();
+        document.getElementById('registerOverlay').style.display = 'none';
+        document.getElementById('welcomeTitle').textContent = '🎉 欢迎 ' + user + '，注册成功！';
+        document.getElementById('welcomeOverlay').classList.add('show');
+      })
+      .catch(function(){ showToast('❌ 网络异常，请检查后端是否启动'); });
     }
 
     // ---------- 跳过 ----------
@@ -646,7 +681,7 @@
       currentUser = null;
       updateNavUser();
       document.getElementById('loginOverlay').classList.add('hidden');
-      document.getElementById('welcomeTitle').textContent = '👋 欢迎来到小饶的2042百货商城';
+      document.getElementById('welcomeTitle').textContent = '👋 欢迎来到小饶的虚拟科技百货';
       document.getElementById('welcomeOverlay').classList.add('show');
     }
 
