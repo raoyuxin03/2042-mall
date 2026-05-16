@@ -1,217 +1,281 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>虚拟科技百货 - 后台管理</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#f0f4f8; color:#1a202c; min-height:100vh; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>虚拟科技百货 - 后台管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-    /* 顶栏 */
-    .topbar { background:linear-gradient(135deg,#1a365d,#2b6cb0); color:#fff; padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
-    .topbar h1 { font-size:18px; font-weight:700; }
-    .topbar a { color:rgba(255,255,255,0.7); text-decoration:none; font-size:13px; padding:5px 14px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); transition:.2s; }
-    .topbar a:hover { background:rgba(255,255,255,0.1); color:#fff; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Plus Jakarta Sans',-apple-system,sans-serif; background:#f5f6fa; color:#1e293b; min-height:100vh; display:flex; }
 
-    .container { max-width:1400px; margin:0 auto; padding:20px; }
+/* 侧边栏 */
+.sidebar { width:240px; flex-shrink:0; background:#fff; border-right:1px solid #eef0f5; display:flex; flex-direction:column; height:100vh; position:sticky; top:0; }
+.sidebar-brand { padding:24px 20px 12px; border-bottom:1px solid #f1f2f6; }
+.sidebar-brand h1 { font-size:16px; font-weight:700; color:#0f172a; letter-spacing:-0.3px; }
+.sidebar-brand p { font-size:11px; color:#94a3b8; margin-top:2px; }
+.sidebar-nav { flex:1; padding:12px 10px; display:flex; flex-direction:column; gap:2px; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; cursor:pointer; transition:all .2s; font-size:14px; color:#64748b; font-weight:500; }
+.nav-item:hover { background:#f1f5f9; color:#334155; }
+.nav-item.active { background:#eef2ff; color:#4f46e5; font-weight:600; }
+.nav-item .icon { font-size:18px; width:24px; text-align:center; flex-shrink:0; }
+.sidebar-footer { padding:12px 20px 16px; border-top:1px solid #f1f2f6; }
+.sidebar-footer .back-shop { display:flex; align-items:center; gap:6px; padding:8px 12px; border-radius:8px; font-size:13px; color:#64748b; text-decoration:none; transition:all .2s; margin-bottom:8px; }
+.sidebar-footer .back-shop:hover { background:#f1f5f9; color:#334155; }
+.sidebar-footer .user-row { display:flex; align-items:center; gap:10px; }
+.sidebar-footer .avatar { width:32px; height:32px; border-radius:8px; background:#eef2ff; color:#4f46e5; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; }
+.sidebar-footer .name { font-size:13px; font-weight:600; color:#1e293b; }
+.sidebar-footer .role { font-size:11px; color:#94a3b8; }
 
-    /* 统计卡片 */
-    .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
-    .stat-card { background:#fff; border-radius:10px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
-    .stat-label { font-size:12px; color:#718096; margin-bottom:2px; }
-    .stat-val { font-size:26px; font-weight:700; color:#1a202c; }
-    .stat-sub { font-size:12px; color:#a0aec0; margin-top:2px; }
+/* 主内容区 */
+.main { flex:1; min-width:0; overflow-y:auto; height:100vh; }
+.main-header { padding:24px 32px 0; display:flex; align-items:center; justify-content:space-between; }
+.main-header h2 { font-size:22px; font-weight:700; color:#0f172a; }
+.main-header .date { font-size:13px; color:#64748b; background:#fff; padding:6px 14px; border-radius:8px; border:1px solid #eef0f5; }
+.content { padding:20px 32px 40px; }
 
-    /* 双列布局 */
-    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px; }
+/* 统计卡片 */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.stat-card { background:#fff; border-radius:14px; padding:20px; border:1px solid #f1f2f6; transition:all .2s; }
+.stat-card:hover { border-color:#e2e4ea; box-shadow:0 2px 12px rgba(0,0,0,0.04); }
+.stat-label { font-size:12px; color:#94a3b8; font-weight:500; display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.stat-val { font-size:28px; font-weight:800; color:#0f172a; letter-spacing:-1px; }
+.stat-sub { font-size:12px; color:#94a3b8; margin-top:4px; }
+.stat-sub strong { color:#334155; font-weight:600; }
 
-    /* 卡片通用 */
-    .card { background:#fff; border-radius:10px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
-    .card-title { font-size:15px; font-weight:600; color:#2d3748; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
-    .badge { font-size:11px; font-weight:500; color:#fff; background:#2b6cb0; padding:2px 10px; border-radius:10px; }
+/* 卡片通用 */
+.card { background:#fff; border-radius:14px; border:1px solid #f1f2f6; overflow:hidden; }
+.card-header { padding:16px 20px; border-bottom:1px solid #f1f2f6; display:flex; align-items:center; justify-content:space-between; }
+.card-header h3 { font-size:14px; font-weight:600; color:#0f172a; }
+.card-header .badge { font-size:11px; color:#64748b; background:#f1f5f9; padding:3px 10px; border-radius:6px; }
 
-    /* 表格 */
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { text-align:left; padding:8px 10px; background:#f7fafc; color:#4a5568; font-weight:600; font-size:12px; border-bottom:2px solid #e2e8f0; }
-    td { padding:8px 10px; border-bottom:1px solid #edf2f7; color:#4a5568; }
-    tr:hover td { background:#f7fafc; }
-    .tag { padding:2px 8px; border-radius:10px; font-size:11px; }
-    .tag-green { background:#c6f6d5; color:#276749; }
-    .tag-red { background:#fed7d7; color:#9b2c2c; }
-    .tag-yellow { background:#fefcbf; color:#975a16; }
+/* 双列 */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
 
-    /* 柱状图 */
-    .chart-bars { height:200px; display:flex; align-items:flex-end; gap:3px; padding-top:8px; }
-    .bar-item { flex:1; max-width:22px; border-radius:3px 3px 0 0; transition:.3s; position:relative; }
-    .bar-item:hover { opacity:.8; transform:scaleY(1.03); transform-origin:bottom; }
-    .bar-label { text-align:center; font-size:8px; color:#a0aec0; margin-top:3px; }
+/* 表格 */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; padding:10px 16px; color:#64748b; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #f1f2f6; background:#fafbfe; }
+td { padding:10px 16px; border-bottom:1px solid #f1f2f6; color:#475569; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#fafbfe; }
 
-    /* 状态分布 */
-    .status-list { display:flex; flex-direction:column; gap:8px; }
-    .s-item { display:flex; align-items:center; gap:8px; }
-    .s-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-    .s-name { flex:1; font-size:13px; color:#4a5568; }
-    .s-bar { flex:2; height:6px; background:#edf2f7; border-radius:3px; overflow:hidden; }
-    .s-fill { height:100%; border-radius:3px; transition:width .6s; }
-    .s-count { font-size:13px; font-weight:600; color:#2d3748; min-width:36px; text-align:right; }
+.tag { padding:2px 10px; border-radius:6px; font-size:11px; font-weight:500; }
+.tag-green { background:#dcfce7; color:#166534; }
+.tag-red { background:#fee2e2; color:#991b1b; }
+.tag-yellow { background:#fef9c3; color:#854d0e; }
 
-    /* Dify固定 */
-    #dify-chatbot-bubble-button { position:fixed!important; bottom:24px!important; right:24px!important; z-index:2147483647!important; background:linear-gradient(135deg,#1a365d,#2b6cb0)!important; box-shadow:0 4px 24px rgba(43,108,176,0.5)!important; border:none!important; width:64px!important; height:64px!important; cursor:pointer!important; }
-    #dify-chatbot-bubble-button:hover { transform:scale(1.1)!important; box-shadow:0 6px 32px rgba(43,108,176,0.7)!important; }
-    #dify-chatbot-bubble-window { position:fixed!important; z-index:2147483646!important; width:32rem!important; height:44rem!important; }
+/* 状态分布 */
+.status-list { display:flex; flex-direction:column; gap:12px; padding:16px 20px; }
+.s-item { display:flex; align-items:center; gap:10px; }
+.s-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.s-name { font-size:13px; color:#475569; flex:1; }
+.s-bar { flex:2; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden; }
+.s-fill { height:100%; border-radius:4px; transition:width .8s ease; }
+.s-count { font-size:13px; font-weight:600; color:#1e293b; min-width:36px; text-align:right; }
 
-    @media (max-width:1024px) { .two-col { grid-template-columns:1fr; } }
-    @media (max-width:640px) { .stat-row { grid-template-columns:repeat(2,1fr); } }
-  </style>
+/* 趋势图 */
+.chart-wrap { padding:16px 20px; }
+.chart-bars { height:160px; display:flex; align-items:flex-end; gap:4px; }
+.bar-group { flex:1; display:flex; flex-direction:column; align-items:center; max-width:28px; }
+.bar-item { width:100%; border-radius:4px 4px 0 0; transition:all .3s; min-height:4px; }
+.bar-item:hover { opacity:0.8; }
+.bar-label { font-size:9px; color:#94a3b8; margin-top:4px; text-align:center; }
+
+/* 加载/空状态 */
+.loading { text-align:center; padding:40px; color:#94a3b8; font-size:13px; }
+.empty-state { text-align:center; padding:40px 20px; }
+.empty-icon { font-size:36px; margin-bottom:8px; opacity:0.4; }
+.empty-text { font-size:13px; color:#94a3b8; }
+
+/* 商品列表 */
+.product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; padding:16px 20px; }
+.p-card { display:flex; align-items:center; gap:14px; padding:12px 14px; border-radius:10px; border:1px solid #f1f2f6; transition:all .2s; cursor:pointer; }
+.p-card:hover { border-color:#e2e4ea; background:#fafbfe; }
+.p-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.p-info { flex:1; min-width:0; }
+.p-name { font-size:13px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.p-brand { font-size:11px; color:#94a3b8; }
+.p-price { font-size:14px; font-weight:700; color:#4f46e5; flex-shrink:0; }
+.p-stock { font-size:10px; padding:2px 8px; border-radius:4px; font-weight:500; flex-shrink:0; }
+
+@media (max-width:1024px) { .two-col { grid-template-columns:1fr; } .stats { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:768px) { .sidebar { display:none; } .main-header { padding:16px 16px 0; flex-direction:column; align-items:flex-start; gap:8px; } .content { padding:16px; } .stats { grid-template-columns:1fr 1fr; gap:10px; } }
+</style>
 </head>
 <body>
 
-  <!-- ===== 顶栏 ===== -->
-  <div class="topbar">
-    <h1>📊 虚拟科技百货 · 后台管理</h1>
-    <a href="/">← 返回商城</a>
+<!-- 侧边栏 -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <h1>虚拟科技百货</h1>
+    <p>后台管理系统</p>
   </div>
-
-  <div class="container">
-
-    <!-- ===== 统计卡片 ===== -->
-    <div class="stat-row">
-      <div class="stat-card">
-        <div class="stat-label">📦 总订单数</div>
-        <div class="stat-val" id="statOrders">-</div>
-        <div class="stat-sub">今日 <strong id="statOrdersToday">-</strong></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">💰 总营业额</div>
-        <div class="stat-val" id="statRevenue">-</div>
-        <div class="stat-sub">今日 <strong id="statRevenueToday">-</strong> 信用点</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">👤 注册用户</div>
-        <div class="stat-val" id="statUsers">-</div>
-        <div class="stat-sub">🏆 热销 <strong id="topProductInfo">-</strong></div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">🔄 退款单数</div>
-        <div class="stat-val" id="statRefunds">-</div>
-        <div class="stat-sub">退款率 <strong id="statRefundRate">-</strong></div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" data-page="overview"><span class="icon">📊</span>数据总览</div>
+    <div class="nav-item" data-page="orders"><span class="icon">📋</span>今日订单</div>
+    <div class="nav-item" data-page="trend"><span class="icon">📈</span>营收趋势</div>
+    <div class="nav-item" data-page="products"><span class="icon">🛒</span>商品目录</div>
+  </div>
+  <div class="sidebar-footer">
+    <a href="/" class="back-shop">← 返回商城首页</a>
+    <div class="user-row">
+      <div class="avatar" id="userAvatar">U</div>
+      <div>
+        <div class="name" id="userName">用户</div>
+        <div class="role">管理员</div>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- ===== 双列：今日明细 + 状态分布 ===== -->
-    <div class="two-col">
-      <div class="card">
-        <div class="card-title">
-          <span>📋 今日销售明细</span>
-          <span class="badge" id="todayBadge">加载中...</span>
-        </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>订单号</th>
-                <th>用户</th>
-                <th>商品</th>
-                <th>数量</th>
-                <th>金额</th>
-                <th>状态</th>
-              </tr>
-            </thead>
-            <tbody id="todayOrdersBody">
-              <tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px;">加载中...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">📊 订单状态分布</div>
-        <div class="status-list" id="statusList"></div>
-      </div>
+<!-- 主内容区 -->
+<div class="main" id="mainContent">
+  <div class="main-header">
+    <h2 id="pageTitle">数据总览</h2>
+    <span class="date" id="todayBadge">加载中...</span>
+  </div>
+  <div class="content" id="pageContent"></div>
+</div>
+
+<!-- Dify 数据分析 -->
+<div style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;" id="difyOverlay">
+  <div style="width:90vw;max-width:960px;height:85vh;background:#fff;border-radius:16px;box-shadow:0 16px 60px rgba(0,0,0,0.2);overflow:hidden;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #f1f2f6;background:#fafbfe;">
+      <span style="font-size:14px;font-weight:600;color:#1e293b;">📊 数据分析助手</span>
+      <button onclick="document.getElementById('difyOverlay').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:18px;color:#94a3b8;padding:4px 8px;">✕</button>
     </div>
-
-    <!-- ===== 营收趋势 ===== -->
-    <div class="card" style="margin-bottom:18px;">
-      <div class="card-title">📈 近30天营收趋势</div>
-      <div class="chart-bars" id="trendChart" style="height:120px;"></div>
+    <div style="flex:1;">
+      <iframe src="http://localhost/chatbot/kJAqSQG4EGo1cgFs" style="width:100%;height:100%;border:none;" frameborder="0" allow="microphone"></iframe>
     </div>
+  </div>
+</div>
+<button onclick="document.getElementById('difyOverlay').style.display='flex'" style="position:fixed;bottom:24px;right:24px;z-index:9998;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;border:none;cursor:pointer;font-size:22px;box-shadow:0 4px 20px rgba(79,70,229,0.4);transition:all .2s;display:flex;align-items:center;justify-content:center;">📊</button>
 
-  </div><!-- container -->
+<script>
+var API = '';
+var pages = {};
 
-  <!-- ===== Dify ===== -->
-  <script>
-    window.difyChatbotConfig = { token:'kJAqSQG4EGo1cgFs', baseUrl:'http://localhost', inputs:{}, systemVariables:{}, userVariables:{} };
-  </script>
-  <script src="http://localhost/embed.min.js" id="kJAqSQG4EGo1cgFs" defer></script>
+(function(){var n=new Date();document.getElementById('todayBadge').textContent=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})();
 
-  <script>
-    var API = '';
-    function fmt(n) { return n||n===0?Number(n).toLocaleString():'-'; }
+function fmt(n){return (n||n===0)?Number(n).toLocaleString():'-';}
+function pct(a,b){return b>0?((a/b)*100).toFixed(1)+'%':'-';}
+function el(id){return document.getElementById(id);}
 
-    function loadOverview() {
-      fetch(API+'/api/admin/overview').then(function(r){return r.json()}).then(function(d){
-        if(d.code!==0)return;
-        var da=d.data;
-        document.getElementById('statOrders').textContent=fmt(da.total_orders);
-        document.getElementById('statRevenue').textContent=fmt(da.total_revenue);
-        document.getElementById('statUsers').textContent=fmt(da.user_count);
-        document.getElementById('statRefunds').textContent=fmt(da.total_refunds);
-        document.getElementById('statOrdersToday').textContent=fmt(da.orders_today);
-        document.getElementById('statRevenueToday').textContent=fmt(da.revenue_today);
-        document.getElementById('topProductInfo').textContent=da.top_product;
-        var rate=da.total_orders>0?((da.total_refunds/da.total_orders)*100).toFixed(1)+'%':'-';
-        document.getElementById('statRefundRate').textContent=rate;
-      });
+document.querySelectorAll('.nav-item').forEach(function(item){
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+    item.classList.add('active');
+    var page=item.dataset.page;
+    var titles={'overview':'数据总览','orders':'今日订单','trend':'营收趋势','products':'商品目录'};
+    el('pageTitle').textContent=titles[page]||'数据总览';
+    if(pages[page]) pages[page]();
+  });
+});
+
+// ===== 数据总览 =====
+pages.overview=function(){
+  var c=el('pageContent');
+  c.innerHTML='<div class="loading">加载中...</div>';
+  fetch(API+'/api/admin/overview').then(function(r){return r.json()}).then(function(d){
+    if(d.code!==0)return;
+    var da=d.data;
+    c.innerHTML=
+      '<div class="stats">'+
+        '<div class="stat-card"><div class="stat-label">📦 总订单数</div><div class="stat-val">'+fmt(da.total_orders)+'</div><div class="stat-sub">今日 <strong>'+fmt(da.orders_today)+'</strong></div></div>'+
+        '<div class="stat-card"><div class="stat-label">💰 总营业额</div><div class="stat-val">'+fmt(da.total_revenue)+'</div><div class="stat-sub">今日 <strong>'+fmt(da.revenue_today)+'</strong> 信用点</div></div>'+
+        '<div class="stat-card"><div class="stat-label">👤 注册用户</div><div class="stat-val">'+fmt(da.user_count)+'</div><div class="stat-sub">🏆 热销 <strong>'+(da.top_product||'暂无')+'</strong></div></div>'+
+        '<div class="stat-card"><div class="stat-label">🔄 退款单数</div><div class="stat-val">'+fmt(da.total_refunds)+'</div><div class="stat-sub">退款率 <strong>'+pct(da.total_refunds,da.total_orders)+'</strong></div></div>'+
+      '</div>'+
+      '<div class="two-col">'+
+        '<div class="card"><div class="card-header"><h3>今日订单明细</h3><span class="badge">'+el('todayBadge').textContent+'</span></div><div class="table-wrap"><table><thead><tr><th>订单号</th><th>用户</th><th>商品</th><th>数量</th><th>金额</th><th>状态</th></tr></thead><tbody id="overviewOrders"><tr><td colspan="6" style="text-align:center;padding:30px;color:#94a3b8;">加载中...</td></tr></tbody></table></div></div>'+
+        '<div class="card"><div class="card-header"><h3>订单状态分布</h3></div><div class="status-list" id="overviewStatus"></div></div>'+
+      '</div>';
+    fetch(API+'/api/admin/today-orders').then(function(r){return r.json()}).then(function(od){
+      if(od.code!==0)return;
+      var tbody=el('overviewOrders'),orders=od.data;
+      if(!orders.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:#94a3b8;">今日暂无订单</td></tr>';return;}
+      var html='';
+      for(var i=0;i<orders.length;i++){
+        var o=orders[i],cls=o.status==='已完成'?'tag-green':o.status==='已退款'?'tag-red':'tag-yellow';
+        html+='<tr><td style="font-family:monospace;font-size:12px;">'+o.order_id+'</td><td>'+o.user_name+'</td><td>'+o.product_name+'</td><td>'+o.quantity+'</td><td style="font-weight:600;">'+fmt(o.amount)+'</td><td><span class="tag '+cls+'">'+o.status+'</span></td></tr>';
+      }
+      tbody.innerHTML=html;
+    });
+    fetch(API+'/api/admin/order-status').then(function(r){return r.json()}).then(function(sd){
+      if(sd.code!==0)return;
+      var data=sd.data,total=data.reduce(function(s,x){return s+x.count;},0),map={'已完成':'#22c55e','已退款':'#ef4444','处理中':'#eab308'};
+      var html='';
+      for(var i=0;i<data.length;i++){
+        var p=total>0?((data[i].count/total)*100).toFixed(0):0;
+        html+='<div class="s-item"><div class="s-dot" style="background:'+(map[data[i].status]||'#94a3b8')+'"></div><span class="s-name">'+data[i].status+'</span><div class="s-bar"><div class="s-fill" style="width:'+p+'%;background:'+(map[data[i].status]||'#94a3b8')+'"></div></div><span class="s-count">'+fmt(data[i].count)+'</span></div>';
+      }
+      el('overviewStatus').innerHTML=html;
+    });
+  });
+};
+
+// ===== 今日订单 =====
+pages.orders=function(){
+  var c=el('pageContent');
+  c.innerHTML='<div class="loading">加载中...</div>';
+  fetch(API+'/api/admin/today-orders').then(function(r){return r.json()}).then(function(d){
+    if(d.code!==0)return;
+    var orders=d.data;
+    if(!orders.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">今日暂无订单</div></div>';return;}
+    var html='<div class="card"><div class="card-header"><h3>今日订单</h3><span class="badge">共 '+orders.length+' 笔</span></div><div class="table-wrap"><table><thead><tr><th>订单号</th><th>用户</th><th>商品</th><th>数量</th><th>金额</th><th>状态</th></tr></thead><tbody>';
+    for(var i=0;i<orders.length;i++){
+      var o=orders[i],cls=o.status==='已完成'?'tag-green':o.status==='已退款'?'tag-red':'tag-yellow';
+      html+='<tr><td style="font-family:monospace;font-size:12px;">'+o.order_id+'</td><td>'+o.user_name+'</td><td>'+o.product_name+'</td><td>'+o.quantity+'</td><td style="font-weight:600;">'+fmt(o.amount)+'</td><td><span class="tag '+cls+'">'+o.status+'</span></td></tr>';
     }
+    html+='</tbody></table></div></div>';
+    c.innerHTML=html;
+  });
+};
 
-    function loadTodayOrders() {
-      fetch(API+'/api/admin/today-orders').then(function(r){return r.json()}).then(function(d){
-        if(d.code!==0)return;
-        var orders=d.data;
-        var tbody=document.getElementById('todayOrdersBody');
-        if(!orders.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px;">今日暂无订单</td></tr>';return;}
-        var html='';
-        for(var i=0;i<orders.length;i++){
-          var o=orders[i];
-          var cls=o.status==='已完成'?'tag-green':o.status==='已退款'?'tag-red':'tag-yellow';
-          html+='<tr><td style="font-family:monospace;font-size:12px;">'+o.order_id+'</td><td>'+o.user_name+'</td><td>'+o.product_name+'</td><td>'+o.quantity+'</td><td style="font-weight:600;">'+fmt(o.amount)+'</td><td><span class="tag '+cls+'">'+o.status+'</span></td></tr>';
-        }
-        tbody.innerHTML=html;
-      }).catch(function(){document.getElementById('todayOrdersBody').innerHTML='<tr><td colspan="6" style="text-align:center;color:#a0aec0;padding:30px;">加载失败</td></tr>';});
+// ===== 营收趋势 =====
+pages.trend=function(){
+  var c=el('pageContent');
+  c.innerHTML='<div class="loading">加载中...</div>';
+  fetch(API+'/api/admin/revenue-trend?days=30').then(function(r){return r.json()}).then(function(d){
+    if(d.code!==0||!d.data.length){
+      c.innerHTML='<div class="empty-state"><div class="empty-icon">📈</div><div class="empty-text">暂无营收数据</div></div>';
+      return;
     }
-
-    function loadTrend() {
-      fetch(API+'/api/admin/revenue-trend?days=30').then(function(r){return r.json()}).then(function(d){
-        if(d.code!==0||!d.data.length)return;
-        var data=d.data,vals=data.map(function(x){return x.revenue;}),maxV=Math.max.apply(null,vals);
-        var c=document.getElementById('trendChart'),html='',colors=['#2b6cb0','#3182ce','#4299e1','#63b3ed'];
-        for(var i=0;i<data.length;i++){
-          var h=maxV>0?(data[i].revenue/maxV*180):0,lb=i%5===0?data[i].date.slice(5):'';
-          html+='<div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:22px;"><div class="bar-item" style="height:'+Math.max(h,4)+'px;background:'+colors[i%4]+';" title="'+data[i].date+' '+fmt(data[i].revenue)+'"></div><div class="bar-label">'+lb+'</div></div>';
-        }
-        c.innerHTML=html;
-      });
+    var data=d.data,vals=data.map(function(x){return x.revenue;}),maxV=Math.max.apply(null,vals);
+    var colors=['#6366f1','#818cf8','#a5b4fc','#c7d2fe'];
+    var html='<div class="card"><div class="card-header"><h3>近30天营收趋势</h3><span class="badge">总额 '+fmt(vals.reduce(function(a,b){return a+b;},0))+' 信用点</span></div><div class="chart-wrap"><div class="chart-bars">';
+    for(var i=0;i<data.length;i++){
+      var h=maxV>0?(data[i].revenue/maxV*150):0,lb=i%5===0?data[i].date.slice(5):'';
+      html+='<div class="bar-group"><div class="bar-item" style="height:'+Math.max(h,4)+'px;background:'+colors[i%4]+';" title="'+data[i].date+' '+fmt(data[i].revenue)+'"></div><div class="bar-label">'+lb+'</div></div>';
     }
+    html+='</div></div></div>';
+    c.innerHTML=html;
+  });
+};
 
-    function loadStatus() {
-      fetch(API+'/api/admin/order-status').then(function(r){return r.json()}).then(function(d){
-        if(d.code!==0)return;
-        var data=d.data,total=data.reduce(function(s,x){return s+x.count;},0),map={'已完成':'#38a169','已退款':'#e53e3e','处理中':'#d69e2e'};
-        var c=document.getElementById('statusList'),html='';
-        for(var i=0;i<data.length;i++){
-          var pct=total>0?((data[i].count/total)*100).toFixed(0):0;
-          html+='<div class="s-item"><div class="s-dot" style="background:'+(map[data[i].status]||'#718096')+'"></div><span class="s-name">'+data[i].status+'</span><div class="s-bar"><div class="s-fill" style="width:'+pct+'%;background:'+(map[data[i].status]||'#718096')+'"></div></div><span class="s-count">'+fmt(data[i].count)+'</span></div>';
-        }
-        c.innerHTML=html;
-      });
+// ===== 商品目录 =====
+pages.products=function(){
+  var c=el('pageContent');
+  c.innerHTML='<div class="loading">加载中...</div>';
+  fetch(API+'/api/products').then(function(r){return r.json()}).then(function(d){
+    if(d.code!==0)return;
+    var prods=d.data,catIcons={'智能穿戴':'👁️','家电厨电':'🍳','出行交通':'🚀','数字服务':'💠','家居生活':'🏠','户外运动':'🏔️','个护健康':'💎','服装':'🧥','机器人':'🤖','食品酒饮':'🍷','数码配件':'🔋','数码存储':'💾','医疗健康':'💊','影音娱乐':'🎬','玩具':'🧩','数码通讯':'📱','出行配件':'🔧','摄影器材':'📷'};
+    var stockTags={'现货':'tag-green','预约':'tag-yellow','限量':'tag-red','预售':'tag-yellow','即将上线':''};
+    var html='<div class="card"><div class="card-header"><h3>全部商品</h3><span class="badge">共 '+prods.length+' 件</span></div><div class="product-grid">';
+    for(var i=0;i<prods.length;i++){
+      var p=prods[i],icon=catIcons[p.category1]||'✦';
+      html+='<div class="p-card"><div class="p-icon" style="background:#eef2ff;">'+icon+'</div><div class="p-info"><div class="p-name">'+p.name+'</div><div class="p-brand">'+p.brand+' · '+p.category1+'</div></div><span class="p-stock '+(stockTags[p.stock]||'')+'" style="color:#6366f1;">'+p.stock+'</span><span class="p-price">'+fmt(p.price)+'</span></div>';
     }
+    html+='</div></div>';
+    c.innerHTML=html;
+  });
+};
 
-    // 更新日期标签
-    var now = new Date();
-    document.getElementById('todayBadge').textContent = String(now.getFullYear()) + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-
-    loadOverview();loadTodayOrders();loadStatus();loadTrend();
-  </script>
+(function(){try{var s=JSON.parse(localStorage.getItem('login2042_session')||'{}');if(s.username)el('userAvatar').textContent=s.username[0].toUpperCase();el('userName').textContent=s.username||'用户';}catch(e){}})();
+pages.overview();
+</script>
 </body>
 </html>

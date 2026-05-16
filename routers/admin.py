@@ -6,6 +6,8 @@ from data import get_product_name, today_str
 
 router = APIRouter()
 
+STATUS_MAP = {"completed": "已完成", "refunded": "已退款", "pending": "处理中"}
+
 
 @router.get("/api/admin/overview")
 def admin_overview():
@@ -64,8 +66,7 @@ def order_status():
     c.execute("SELECT status,COUNT(*) as cnt FROM orders GROUP BY status")
     rows = c.fetchall()
     conn.close()
-    MAP = {"completed": "已完成", "refunded": "已退款", "pending": "处理中"}
-    return {"code": 0, "data": [{"status": MAP.get(r["status"], r["status"]), "count": r["cnt"]} for r in rows]}
+    return {"code": 0, "data": [{"status": STATUS_MAP.get(r["status"], r["status"]), "count": r["cnt"]} for r in rows]}
 
 
 @router.get("/api/admin/today-orders")
@@ -75,15 +76,14 @@ def today_orders():
     c.execute("SELECT order_id,customer_name,product_id,quantity,total_price,status,order_date FROM orders WHERE order_date=%s ORDER BY order_id LIMIT 50", (today_str(),))
     rows = c.fetchall()
     conn.close()
-    MAP = {"completed": "已完成", "refunded": "已退款", "pending": "处理中"}
     data = [
         {
-            "order_id": f"ORD{r['order_id']}" if not str(r['order_id']).startswith("ORD") else r['order_id'],
+            "order_id": r['order_id'],
             "user_name": r["customer_name"],
             "product_name": get_product_name(str(r['product_id'])),
             "quantity": r["quantity"],
             "amount": float(r["total_price"]),
-            "status": MAP.get(r["status"], r["status"]),
+            "status": STATUS_MAP.get(r["status"], r["status"]),
         }
         for r in rows
     ]

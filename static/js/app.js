@@ -237,15 +237,12 @@
     // ==============================
     var cart = loadCart();
 
-    function loadCart() {
-      try {
-        var d = localStorage.getItem('cart2042');
-        return d ? JSON.parse(d) : {};
-      } catch(e) { return {}; }
-    }
-    function saveCart() {
-      try { localStorage.setItem('cart2042', JSON.stringify(cart)); } catch(e) {}
-    }
+    // ---------- 存储工具 ----------
+    function lsGet(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def || {}; } }
+    function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+
+    function loadCart() { return lsGet('cart2042', {}); }
+    function saveCart() { lsSet('cart2042', cart); }
 
     function addToCart(id, qty) {
       if (!requireAuth()) return;
@@ -552,21 +549,9 @@
     var DEFAULT_PASS = '2042';
     var currentUser = null;
 
-    // ---------- 存储工具 ----------
-    function getUsers() {
-      try { return JSON.parse(localStorage.getItem('login2042_users') || '{}'); }
-      catch(e) { return {}; }
-    }
-    function saveUsers(users) {
-      localStorage.setItem('login2042_users', JSON.stringify(users));
-    }
-    function getSession() {
-      try { return JSON.parse(localStorage.getItem('login2042_session') || '{}'); }
-      catch(e) { return {}; }
-    }
-    function saveSession(s) {
-      localStorage.setItem('login2042_session', JSON.stringify(s));
-    }
+    // ---------- 会话管理 ----------
+    function getSession() { return lsGet('login2042_session', {}); }
+    function saveSession(s) { lsSet('login2042_session', s); }
     function clearSession() {
       localStorage.removeItem('login2042_session');
     }

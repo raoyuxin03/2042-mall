@@ -13,6 +13,14 @@ def generate_token() -> str:
     return secrets.token_hex(32)
 
 
+def create_session(conn, username: str) -> str:
+    token = generate_token()
+    c = conn.cursor()
+    c.execute("INSERT INTO tokens (token, username) VALUES (%s, %s)", (token, username))
+    conn.commit()
+    return token
+
+
 def get_username_by_token(token: str) -> str | None:
     conn = get_db()
     try:
@@ -38,9 +46,7 @@ def register(req: RegisterReq):
     except pymysql.IntegrityError:
         conn.close()
         raise HTTPException(status_code=409, detail="用户名已存在")
-    token = generate_token()
-    c.execute("INSERT INTO tokens (token, username) VALUES (%s, %s)", (token, req.username))
-    conn.commit()
+    token = create_session(conn, req.username)
     conn.close()
     return {"code": 0, "data": {"token": token, "username": req.username}}
 
@@ -59,15 +65,11 @@ def login(req: LoginReq):
             except pymysql.IntegrityError:
                 conn.close()
                 raise HTTPException(status_code=401, detail="密码错误")
-            token = generate_token()
-            c.execute("INSERT INTO tokens (token, username) VALUES (%s, %s)", (token, req.username))
-            conn.commit()
+            token = create_session(conn, req.username)
             conn.close()
             return {"code": 0, "data": {"token": token, "username": req.username}}
         conn.close()
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    token = generate_token()
-    c.execute("INSERT INTO tokens (token, username) VALUES (%s, %s)", (token, req.username))
-    conn.commit()
+    token = create_session(conn, req.username)
     conn.close()
     return {"code": 0, "data": {"token": token, "username": req.username}}
